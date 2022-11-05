@@ -67,6 +67,37 @@ func TestTraverseDir(t *testing.T) {
 	}
 }
 
+func TestTraverseDir_NoDir(t *testing.T) {
+
+	tests := []struct {
+		Name      string
+		Directory string
+	}{
+		{
+			Name:      "Not found",
+			Directory: "./testdata/notfound-dir",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("The code did not panic")
+				}
+			}()
+			entries, err := ioutil.ReadDir("./testdata/testno-dupes")
+			if err != nil {
+				panic(err)
+			}
+			var dupeSize int64
+			hashes := make(map[string]string)
+			duplicates := make(map[string]string)
+			traverseDir(hashes, duplicates, &dupeSize, entries, tt.Directory)
+		})
+	}
+}
+
 func TestToReadableSize(t *testing.T) {
 	tests := []struct {
 		Name       string
