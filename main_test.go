@@ -37,9 +37,9 @@ func TestTraverseDir(t *testing.T) {
 				Duplicate int
 				DupSize   int64
 			}{
-				Total:     5,
-				Duplicate: 2,
-				DupSize:   0,
+				Total:     4,
+				Duplicate: 1,
+				DupSize:   11,
 			},
 		},
 	}
