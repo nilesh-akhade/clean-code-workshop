@@ -31,12 +31,7 @@ func traverseDir(hashes, duplicates map[string]string, dupeSize *int64, entries 
 		if err != nil {
 			panic(err)
 		}
-		hash := sha1.New()
-		if _, err := hash.Write(file); err != nil {
-			panic(err)
-		}
-		hashSum := hash.Sum(nil)
-		hashString := fmt.Sprintf("%x", hashSum)
+		hashString := generateHash(file)
 		if hashEntry, ok := hashes[hashString]; ok {
 			duplicates[hashEntry] = fullpath
 			atomic.AddInt64(dupeSize, entry.Size())
@@ -46,20 +41,38 @@ func traverseDir(hashes, duplicates map[string]string, dupeSize *int64, entries 
 	}
 }
 
+func generateHash(bytes []byte) string {
+	hash := sha1.New()
+	if _, err := hash.Write(bytes); err != nil {
+		panic(err)
+	}
+	hashSum := hash.Sum(nil)
+	return fmt.Sprintf("%x", hashSum)
+}
+
+const (
+	BYTES_TB = BYTES_GB * 1000
+	BYTES_GB = BYTES_MB * 1000
+	BYTES_MB = BYTES_KB * 1000
+	BYTES_KB = 1000
+)
+
 func toReadableSize(nbytes int64) string {
-	if nbytes > 1000*1000*1000*1000 {
-		return strconv.FormatInt(nbytes/(1000*1000*1000*1000), 10) + " TB"
+	switch {
+	case nbytes > BYTES_TB:
+		return strconv.FormatInt(nbytes/(BYTES_TB), 10) + " TB"
+
+	case nbytes > BYTES_GB:
+		return strconv.FormatInt(nbytes/(BYTES_GB), 10) + " GB"
+
+	case nbytes > BYTES_MB:
+		return strconv.FormatInt(nbytes/(BYTES_MB), 10) + " MB"
+
+	case nbytes > BYTES_KB:
+		return strconv.FormatInt(nbytes/BYTES_KB, 10) + " KB"
+	default:
+		return strconv.FormatInt(nbytes, 10) + " B"
 	}
-	if nbytes > 1000*1000*1000 {
-		return strconv.FormatInt(nbytes/(1000*1000*1000), 10) + " GB"
-	}
-	if nbytes > 1000*1000 {
-		return strconv.FormatInt(nbytes/(1000*1000), 10) + " MB"
-	}
-	if nbytes > 1000 {
-		return strconv.FormatInt(nbytes/1000, 10) + " KB"
-	}
-	return strconv.FormatInt(nbytes, 10) + " B"
 }
 
 func main() {

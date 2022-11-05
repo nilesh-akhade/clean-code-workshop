@@ -66,3 +66,28 @@ func TestTraverseDir(t *testing.T) {
 		})
 	}
 }
+
+func TestToReadableSize(t *testing.T) {
+	tests := []struct {
+		Name       string
+		InBytes    int64
+		InReadable string
+	}{
+		{
+			Name:       "Bytes conversion",
+			InBytes:    100,
+			InReadable: "100 B",
+		}, {
+			Name:       "KB conversion",
+			InBytes:    1001,
+			InReadable: "1 KB",
+		},
+	}
+
+	for _, tt := range tests {
+		szReadable := toReadableSize(tt.InBytes)
+		if szReadable != tt.InReadable {
+			t.Errorf("toReadable size: expected:%v, got: %v", tt.InReadable, szReadable)
+		}
+	}
+}
