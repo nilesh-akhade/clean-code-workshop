@@ -81,6 +81,22 @@ func TestToReadableSize(t *testing.T) {
 			Name:       "KB conversion",
 			InBytes:    1001,
 			InReadable: "1 KB",
+		}, {
+			Name:       "MB conversion",
+			InBytes:    2005 * 1000,
+			InReadable: "2 MB",
+		}, {
+			Name:       "GB conversion",
+			InBytes:    9005 * 1000 * 1000,
+			InReadable: "9 GB",
+		}, {
+			Name:       "TB conversion",
+			InBytes:    580 * 1000 * 1000 * 1000 * 1000,
+			InReadable: "580 TB",
+		}, {
+			Name:       "0 bytes",
+			InBytes:    0,
+			InReadable: "0 B",
 		},
 	}
 
