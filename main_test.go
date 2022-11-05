@@ -46,21 +46,21 @@ func TestTraverseDir(t *testing.T) {
 				Err:       nil,
 			},
 		},
-		//{
-		//	Name:      "Dir not found",
-		//	Directory: "./testdata/notfound",
-		//	Want: struct {
-		//		Total     int
-		//		Duplicate int
-		//		DupSize   int64
-		//		Err       error
-		//	}{
-		//		Total:     0,
-		//		Duplicate: 0,
-		//		DupSize:   0,
-		//		Err:       nil,
-		//	},
-		//},
+		{
+			Name:      "Dir not found",
+			Directory: "./testdata/notfound",
+			Want: struct {
+				Total     int
+				Duplicate int
+				DupSize   int64
+				Err       error
+			}{
+				Total:     0,
+				Duplicate: 0,
+				DupSize:   0,
+				Err:       ErrReadDir,
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -26,7 +26,7 @@ func (dupDetails *DuplicateDetails) traverseDir(directory string) error {
 
 	entries, err := ioutil.ReadDir(directory)
 	if err != nil {
-		return fmt.Errorf("Error traversing directory: %v", err)
+		return ErrReadDir
 	}
 
 	for _, entry := range entries {
