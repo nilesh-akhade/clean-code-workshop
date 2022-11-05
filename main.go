@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha1"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -11,7 +12,18 @@ import (
 	"sync/atomic"
 )
 
-func traverseDir(hashes, duplicates map[string]string, dupeSize *int64, entries []os.FileInfo, directory string) {
+type DuplicateDetails struct {
+	Hashes     map[string]string
+	Duplicates map[string]string
+	DupeSize   *int64
+}
+
+var (
+	ErrReadDir  = errors.New("failed to read directory")
+	ErrReadFile = errors.New("failed to read file")
+)
+
+func traverseDir(dupDetails *DuplicateDetails, entries []os.FileInfo, directory string) error {
 	for _, entry := range entries {
 		fullpath := (path.Join(directory, entry.Name()))
 
@@ -22,23 +34,27 @@ func traverseDir(hashes, duplicates map[string]string, dupeSize *int64, entries 
 		if entry.IsDir() {
 			dirFiles, err := ioutil.ReadDir(fullpath)
 			if err != nil {
-				panic(err)
+				return ErrReadDir
 			}
-			traverseDir(hashes, duplicates, dupeSize, dirFiles, fullpath)
+			err = traverseDir(dupDetails, dirFiles, fullpath)
+			if err != nil {
+				return err
+			}
 			continue
 		}
 		file, err := ioutil.ReadFile(fullpath)
 		if err != nil {
-			panic(err)
+			return ErrReadFile
 		}
 		hashString := generateHash(file)
-		if hashEntry, ok := hashes[hashString]; ok {
-			duplicates[hashEntry] = fullpath
-			atomic.AddInt64(dupeSize, entry.Size())
+		if hashEntry, ok := dupDetails.Hashes[hashString]; ok {
+			dupDetails.Duplicates[hashEntry] = fullpath
+			atomic.AddInt64(dupDetails.DupeSize, entry.Size())
 		} else {
-			hashes[hashString] = fullpath
+			dupDetails.Hashes[hashString] = fullpath
 		}
 	}
+	return nil
 }
 
 func generateHash(bytes []byte) string {
@@ -83,25 +99,34 @@ func main() {
 	if *dir == "" {
 		*dir, err = os.Getwd()
 		if err != nil {
-			panic(err)
+			fmt.Printf("Error traversing directory: %v", err)
+			return
 		}
 	}
 
-	hashes := map[string]string{}
-	duplicates := map[string]string{}
 	var dupeSize int64
 
 	entries, err := ioutil.ReadDir(*dir)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Error traversing directory: %v", err)
+		return
+	}
+	dupeDetails := &DuplicateDetails{
+		Hashes:     map[string]string{},
+		Duplicates: map[string]string{},
+		DupeSize:   &dupeSize,
 	}
 
-	traverseDir(hashes, duplicates, &dupeSize, entries, *dir)
+	err = traverseDir(dupeDetails, entries, *dir)
+	if err != nil {
+		fmt.Printf("Error traversing directory: %v", err)
+		return
+	}
 
 	fmt.Println("DUPLICATES")
 
-	fmt.Println("TOTAL FILES:", len(hashes))
-	fmt.Println("DUPLICATES:", len(duplicates))
+	fmt.Println("TOTAL FILES:", len(dupeDetails.Hashes))
+	fmt.Println("DUPLICATES:", len(dupeDetails.Duplicates))
 	fmt.Println("TOTAL DUPLICATE SIZE:", toReadableSize(dupeSize))
 }
 

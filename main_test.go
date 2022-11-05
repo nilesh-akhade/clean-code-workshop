@@ -14,6 +14,7 @@ func TestTraverseDir(t *testing.T) {
 			Total     int
 			Duplicate int
 			DupSize   int64
+			Err       error
 		}
 	}{
 		{
@@ -23,10 +24,12 @@ func TestTraverseDir(t *testing.T) {
 				Total     int
 				Duplicate int
 				DupSize   int64
+				Err       error
 			}{
 				Total:     2,
 				Duplicate: 0,
 				DupSize:   0,
+				Err:       nil,
 			},
 		},
 		{
@@ -36,64 +39,56 @@ func TestTraverseDir(t *testing.T) {
 				Total     int
 				Duplicate int
 				DupSize   int64
+				Err       error
 			}{
 				Total:     4,
 				Duplicate: 1,
 				DupSize:   11,
+				Err:       nil,
+			},
+		},
+		{
+			Name:      "Dir not found",
+			Directory: "./testdata/notfound",
+			Want: struct {
+				Total     int
+				Duplicate int
+				DupSize   int64
+				Err       error
+			}{
+				Total:     0,
+				Duplicate: 0,
+				DupSize:   0,
+				Err:       nil,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			entries, err := ioutil.ReadDir(tt.Directory)
-			if err != nil {
-				panic(err)
-			}
 			var dupeSize int64
-			hashes := make(map[string]string)
-			duplicates := make(map[string]string)
-			traverseDir(hashes, duplicates, &dupeSize, entries, tt.Directory)
+			dupeDetails := &DuplicateDetails{
+				Hashes:     map[string]string{},
+				Duplicates: map[string]string{},
+				DupeSize:   &dupeSize,
+			}
+			entries, _ := ioutil.ReadDir(tt.Directory)
+			// if err != nil {
+			// 	t.Error(err)
+			// }
+			err := traverseDir(dupeDetails, entries, tt.Directory)
+			if err != tt.Want.Err {
+				t.Errorf("error: expected:%v, got: %v", tt.Want.Err, err)
+			}
 			if dupeSize != tt.Want.DupSize {
 				t.Errorf("size: expected:%v, got: %v", tt.Want.DupSize, dupeSize)
 			}
-			if len(hashes) != tt.Want.Total {
-				t.Errorf("total: expected:%v, got: %v", tt.Want.Total, len(hashes))
+			if len(dupeDetails.Hashes) != tt.Want.Total {
+				t.Errorf("total: expected:%v, got: %v", tt.Want.Total, len(dupeDetails.Hashes))
 			}
-			if len(duplicates) != tt.Want.Duplicate {
-				t.Errorf("duplicates: expected:%v, got: %v", tt.Want.Duplicate, len(duplicates))
+			if len(dupeDetails.Duplicates) != tt.Want.Duplicate {
+				t.Errorf("duplicates: expected:%v, got: %v", tt.Want.Duplicate, len(dupeDetails.Duplicates))
 			}
-		})
-	}
-}
-
-func TestTraverseDir_NoDir(t *testing.T) {
-
-	tests := []struct {
-		Name      string
-		Directory string
-	}{
-		{
-			Name:      "Not found",
-			Directory: "./testdata/notfound-dir",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			defer func() {
-				if r := recover(); r == nil {
-					t.Errorf("The code did not panic")
-				}
-			}()
-			entries, err := ioutil.ReadDir("./testdata/testno-dupes")
-			if err != nil {
-				panic(err)
-			}
-			var dupeSize int64
-			hashes := make(map[string]string)
-			duplicates := make(map[string]string)
-			traverseDir(hashes, duplicates, &dupeSize, entries, tt.Directory)
 		})
 	}
 }
